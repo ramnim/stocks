@@ -4,5 +4,5 @@ class Strings {
   static const NAME = 'name';
   static const EMAIL = 'email';
   static const ADDRESS = 'address';
-  static const PASSWORD_KEY = 'Keep this pass word safe for encryption of data';
+  static const PASSWORD_KEY = '16 characters wi';
 }

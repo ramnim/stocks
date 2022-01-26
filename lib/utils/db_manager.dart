@@ -21,6 +21,12 @@ class DbManger {
       int id1 = await txn.rawInsert('INSERT INTO stock(id, stockName, price, dayGain, lastTrade, extendedHours, lastPrice) values (?, ?, ?, ?, ?, ?, ?)', values);
     });
   }
+  Future<int> getStockRowCoount() async {
+    int count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM stock'));
+    if ((count ?? 0) <= 0) return 0;
+    else return count;
+  }
+
   Future<List<Map>> getRows() async {
     List<Map> list = await db.rawQuery('SELECT * FROM stock');
     list.forEach((element) {

@@ -23,13 +23,11 @@ class MyStocksWatchList extends StatefulWidget {
   _MyStocksWatchListState createState() => _MyStocksWatchListState();
 }
 
-class _MyStocksWatchListState extends State<MyStocksWatchList>  with TickerProviderStateMixin {
+class _MyStocksWatchListState extends State<MyStocksWatchList>  with SingleTickerProviderStateMixin {
   bool dataFetched = false;
   List<Stock> myStocks;
   TabController tabController;
-  String name;
-  String email;
-  String address;
+  String name, email, address;
   bool fetchedSharedPref = false;
   @override
   void initState () {
@@ -60,16 +58,21 @@ class _MyStocksWatchListState extends State<MyStocksWatchList>  with TickerProvi
   }
   void getData () async {
     await DbManger().openDb(1);
-    var resp = await http.get(Uri.parse(Strings.WATCH_LIST_API));
-    var json = jsonDecode(resp.body);
-    // RegExp('.{0,1023}').allMatches(json.toString()).forEach((element) => print('----- ${element.group(0)}'));
-    myStocks = StockApi.fromJson(json).stocks;
-    myStocks.forEach((element) {
-      DbManger().insert([element.id, element.stockName, element.price.toString(), element.dayGain.toString(), element.lastTrade.toString(), element.extendedHours.toString(), element.lastPrice.toString()]);
-    });
-    List<Map> rows = await DbManger().getRows();
-    for (int i = 0; i < rows.length; i++) {
-      print ('---- row ${i+1}: ${rows[i].toString()}');
+    int stocksCount = await DbManger().getStockRowCoount();
+    if ((stocksCount ?? 0) <= 0) {
+      var resp = await http.get(Uri.parse(Strings.WATCH_LIST_API));
+      var json = jsonDecode(resp.body);
+      myStocks = StockApi.fromJson(json).stocks;
+      myStocks.forEach((element) {
+        DbManger().insert([element.id, element.stockName, element.price.toString(), element.dayGain.toString(), element.lastTrade.toString(), element.extendedHours.toString(), element.lastPrice.toString()]);
+      });
+    } else {
+      List<Map> rows = await DbManger().getRows();
+      myStocks = [];
+      for (int i = 0; i < rows.length; i++) {
+        print('---- row ${i + 1}: ${rows[i].toString()}');
+        myStocks.add(Stock.fromJson(rows[i]));
+      }
     }
     setState(() {
      dataFetched = true;
@@ -101,18 +104,19 @@ class _MyStocksWatchListState extends State<MyStocksWatchList>  with TickerProvi
     );
   }
   Widget myStocksWatchList() {
+    myStocks = [];
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         CustomAppBar(Lang.MY_WATCHLIST),
         Expanded(
-          child: ListView.separated(
+          child: myStocks.length > 0 ? ListView.separated(
             padding: EdgeInsets.only(top: 10, left: 16, right: 16, bottom: 10),
             itemCount: myStocks.length,
             itemBuilder: (_, index) => MyStockItem (myStocks[index]),
             separatorBuilder: (_, index) => MyStockSeperator(),
-          ),
+          ) : Center(child: Text(Lang.NO_STOCKS, style: TextStyle(fontSize: 16, color: Colors.white))),
         ),
       ],
     );
